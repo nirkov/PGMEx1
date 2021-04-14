@@ -62,7 +62,43 @@ def get_conditional_expectation(data):
     :param data: Row vectors of data points X (n x 784)
     :return: array of E(z1 | X = data), array of E(z2 | X = data)
     """
-    pass
+    pz1_pz2 = np.zeros(25 * 25)
+    p_x_1 = np.zeros((25 * 25, len(data[0])))
+    p_x_0 = np.zeros((25 * 25, len(data[0])))
+    z_val = np.zeros(25 * 25)
+
+    i = 0
+    for z1 in z1_vals:
+        for z2 in z2_vals:
+            pz1_pz2[i] = np.log(get_p_z1(z1)) + np.log(get_p_z2(z2))
+            p_x_1[i] = np.log(get_p_x_cond_z1_z2(z1, z2))
+            p_x_0[i] = np.log(1 - get_p_x_cond_z1_z2(z1, z2))
+            z_val[i] = z1
+            i = i + 1
+
+    mean_z1 = []
+    for x in data:
+        denominator = pz1_pz2 + np.sum(np.where(x == 1, p_x_1, p_x_0), axis=1)
+        numerator = z_val * np.exp(denominator)
+        mean_z1.append(np.sum(numerator) / np.exp(logsumexp(denominator)))
+
+    i = 0
+    for z2 in z2_vals:
+        for z1 in z1_vals:
+            pz1_pz2[i] = np.log(get_p_z1(z1)) + np.log(get_p_z2(z2))
+            p_x_1[i] = np.log(get_p_x_cond_z1_z2(z1, z2))
+            p_x_0[i] = np.log(1 - get_p_x_cond_z1_z2(z1, z2))
+            z_val[i] = z2
+            i = i + 1
+
+    mean_z2 = []
+    for x in data:
+        denominator = pz1_pz2 + np.sum(np.where(x == 1, p_x_1, p_x_0), axis=1)
+        numerator = z_val * np.exp(denominator)
+        mean_z2.append(np.sum(numerator) / np.exp(logsumexp(denominator)))
+
+
+    return mean_z1, mean_z2
 
 
 # Below are two functions it is suggested you implement and use (but feel free to implement something else).
@@ -134,12 +170,6 @@ def q_3():
     val_data = mat['val_x']
     test_data = mat['test_x']
 
-    '''
-    TODO. Calculate marginal_log_likelihood of test samples classified as real and as corrupted.
-    '''
-    # Your code should calculate the two arrays below...
-
-
     z1_z2 = np.zeros(25 * 25)
     p_x_1 = np.zeros((25 * 25, len(val_data[0])))
     p_x_0 = np.zeros((25 * 25, len(val_data[0])))
@@ -155,8 +185,7 @@ def q_3():
 
     for x in val_data:
         product_log = np.sum(np.where(x == 1, p_x_1, p_x_0), axis=1) + z1_z2
-        product = np.exp(product_log)
-        loglike.append(np.log(np.sum(product)))
+        loglike.append(logsumexp(product_log))
 
     loglike = np.array(loglike)
     std = np.std(loglike)
@@ -165,8 +194,8 @@ def q_3():
     loglike_test = []
     for x in test_data:
         product_log = np.sum(np.where(x == 1, p_x_1, p_x_0), axis=1) + z1_z2
-        product = np.exp(product_log)
-        loglike_test.append(np.log(np.sum(product)))
+        loglike_test.append(logsumexp(product_log))
+
 
     loglike_test = np.array(loglike_test)
     real_images_indices = np.abs(loglike_test - mean) < (3 * std)
@@ -176,8 +205,8 @@ def q_3():
     plot_histogram(real_marginal_log_likelihood, title='Histogram of marginal log-likelihood for real test data',
              xlabel='marginal log-likelihood', savefile='q_3_hist_real')
 
-    # plot_histogram(corrupt_marginal_log_likelihood, title='Histogram of marginal log-likelihood for corrupted test data',
-    #     xlabel='marginal log-likelihood', savefile='q_3_hist_corrupt')
+    plot_histogram(corrupt_marginal_log_likelihood, title='Histogram of marginal log-likelihood for corrupted test data',
+        xlabel='marginal log-likelihood', savefile='q_3_hist_corrupt')
 
     plt.show()
     plt.close()
@@ -239,10 +268,11 @@ def main():
     z1_vals = sorted(bayes_net['prior_z1'].keys())
     z2_vals = sorted(bayes_net['prior_z2'].keys())
 
+
     # TODO: Using the above Bayesian Network model, complete the following parts.
     # q_1()
-    # q_2()
-    q_3()
+    q_2()
+    # q_3()
     q_4()
 
 if __name__== '__main__':
